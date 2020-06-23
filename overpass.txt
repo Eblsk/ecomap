@@ -1,0 +1,37 @@
+// Zones
+area[name="Évry"][admin_level=9];
+area[name="Paris"][admin_level=6];
+area[name="Île-de-France"][admin_level=4];
+
+
+// Requête
+
+[out:json]		// à enlever pour obtenir un fichier .osm
+area[name="Évry"][admin_level=9];
+(
+	// Espaces verts / biodiversité
+	nwr[leisure=park](area);
+	nwr[leisure=garden](area);
+	nwr[landuse=forest](area);
+	nwr[natural=wood](area);
+	nwr[boundary = national_park](area);
+	nwr[leisure = nature_reserve](area);
+	nwr[boundary = protected_area](area);
+	nwr[man_made = insect_hotel](area);
+	nwr[man_made = beehive](area);
+
+	// Economie verte
+	nwr[organic=only](area);
+	nwr['diet:vegetarian'=only](area);
+	nwr['diet:vegetarian'=only](area);
+	nwr[fair_trade=only](area);
+	nwr[repair=only](area);
+
+	// Mobilité
+	nwr[cycleway](area);
+	nwr[highway=cycleway](area);
+	nwr[cyclestreet=yes](area);
+	nwr[bicycle_road=yes](area);
+
+);
+out;
