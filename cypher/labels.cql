@@ -56,10 +56,10 @@ merge (dstr)-[:IN_CITY]->(city)
 merge (city)-[:IN_DPT]->(dpt)
 merge (dpt)-[:IN_REG]->(reg);
 
+//---------------------------------------------------
+// Renommer les pistes cyclables 
+//---------------------------------------------------
 
-//---------------------------------------------------
-// Renommer les pistes cyclables
-//---------------------------------------------------
 MATCH (n)-[r]->(m)
 WHERE exists(r.cycleway) or r.highway='cycleway'
 or r.bicycle='use_sidepath' or r.cyclestreet='yes'
@@ -76,6 +76,7 @@ DELETE r;
 // -------------------------------------------------------
 // Compression - Dupliquer les noeuds avec + d'une relation entre eux
 // -------------------------------------------------------
+
 match (n)-[r :NEXT_NODE]->(m)
 with n,m, collect(r) as rels
 where size(rels) > 1
@@ -209,6 +210,7 @@ delete r2;
 //---------------------------------------------------
 // Ajout de labels sur les éléments
 //---------------------------------------------------
+
 MATCH (n {leisure:'park'})
 SET n:PARC:BIODIVERSITE;
 MATCH (n {leisure:'garden'})
