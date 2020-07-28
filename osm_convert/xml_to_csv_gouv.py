@@ -1,5 +1,5 @@
 import requests
-import csv, sys, os, warnings
+import csv, sys, os, warnings, io
 from xml.etree import ElementTree
 
 def clean(x):
@@ -37,7 +37,7 @@ for way in root.findall('way'):
 # Nodes
 print("Reading & writing nodes in CSV file")
 all_nodes = set()
-with open(dir_name +'/nodes.csv', 'w') as f:
+with io.open(dir_name +'/nodes.csv', 'w', encoding="utf-8") as f:
     w = csv.DictWriter(f, extrasaction='ignore', fieldnames=node_tags)
     w.writeheader()
     for node in root.findall('node'):
@@ -71,7 +71,7 @@ with open(dir_name +'/nodes.csv', 'w') as f:
 # Ways
 complete_ways = True
 print("Reading & writing ways in CSV file")
-with open(dir_name +'/ways.csv', 'w') as f:
+with io.open(dir_name +'/ways.csv', 'w', encoding="utf-8") as f:
     w = csv.DictWriter(f, extrasaction='ignore', fieldnames=way_tags)
     w.writeheader()
     for way in root.findall('way'):
@@ -99,3 +99,6 @@ if not complete_ways:
 print()
 print("Move the generated files to the neo4j import directory and execute the following command in neo4j terminal :")
 print("bin/neo4j-admin import --nodes=import/nodes.csv --relationships=import/ways.csv") 
+print("-----------------------")
+print("bin\neo4j-admin.bat import --nodes=import\nodes.csv --relationships=import\ways.csv") 
+

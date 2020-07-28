@@ -1,60 +1,78 @@
 //--------------------------------------------------
 // Villes et régions
 //--------------------------------------------------
-// A faire relier avant le merge des parcs, si plusieurs rues à côté
 
+// Départements -> régions
+match (n)
+where exists (n.reg)
+with distinct n.dpt as ndpt, n.reg as nreg
+merge (reg :REG {name:nreg})
+create (dpt :DPT {name:ndpt})-[:IN_REG]->(reg);
+
+// Villes -> departements
+match (n)
+where exists (n.reg)
+with distinct n.city as ncity, n.dpt as ndpt
+match (dpt :DPT {name:ndpt})
+create (city :CITY {name:ncity})-[:IN_DPT]->(dpt);
+
+// Districts -> villes
+match (n)
+where exists (n.district)
+with distinct n.district as ndistrict, n.city as ncity, n.dpt as ndpt
+match (city :CITY {name:ncity})-[:IN_DPT]->(:DPT {name:ndpt})
+create (dstr :DISTRICT {name:ndistrict})-[:IN_CITY]->(city);
+
+// Rues et lieux -> villes
+match (n)
+where exists(n.street) and not exists (n.district)
+with distinct n.street as nstreet, n.city as ncity, n.dpt as ndpt
+match (city :CITY {name:ncity})-[:IN_DPT]->(:DPT {name:ndpt})
+create (str :STREET {name:nstreet})-[:IN_CITY]->(city);
+	
+match (n)
+where exists(n.`loc-name`) and not exists (n.district)
+with distinct n.`loc-name` as nloc, n.city as ncity, n.dpt as ndpt
+match (city :CITY {name:ncity})-[:IN_DPT]->(:DPT {name:ndpt})
+create (loc :LOCATION {name:nloc})-[:IN_CITY]->(city);
+
+// Rues et lieux -> districts
+match (n)
+where exists(n.street) and exists (n.district)
+with distinct n.street as nstreet, n.district as ndistrict, n.city as ncity
+match (dstr :DISTRICT {name:ndistrict})-[:IN_CITY]->(:CITY {name:ncity})
+create (str :STREET {name:nstreet})-[:IN_DSTR]->(dstr);
+	
+match (n)
+where exists(n.`loc-name`) and exists (n.district)
+with distinct n.`loc-name` as nloc, n.district as ndistrict, n.city as ncity
+match (dstr :DISTRICT {name:ndistrict})-[:IN_CITY]->(:CITY {name:ncity})
+create (loc :LOCATION {name:nloc})-[:IN_DSTR]->(dstr);
+
+// Noeuds -> rues ou locations
+match (n)
+where exists(n.street) and not exists (n.district)
+with n
+match (str :STREET {name:n.street})-[:IN_CITY]->(city :CITY {name:n.city})-[:IN_DPT]->(:DPT {name:n.dpt})
+create (n)-[:IN_STREET]->(str);
 
 match (n)
-where exists(n.street)
-and not exists (n.district)
-merge (str :STREET {name:n.street})
-merge (city :CITY {name:n.city})
-merge (dpt :DPT {name:n.dpt})
-merge (reg :REG {name:n.reg})
-merge (n)-[:IN_STREET]->(str)
-merge (str)-[:IN_CITY]->(city)
-merge (city)-[:IN_DPT]->(dpt)
-merge (dpt)-[:IN_REG]->(reg);
+where exists(n.`loc-name`) and not exists (n.district)
+with n
+match (loc :LOC {name:n.`loc-name`})-[:IN_CITY]->(city :CITY {name:n.city})-[:IN_DPT]->(:DPT {name:n.dpt})
+create (n)-[:IN_LOC]->(loc);
 
 match (n)
-where exists(n.`loc-name`)
-and not exists (n.district)
-merge (loc :LOCATION {name:n.`loc-name`})
-merge (city :CITY {name:n.city})
-merge (dpt :DPT {name:n.dpt})
-merge (reg :REG {name:n.reg})
-merge (n)-[:IN_LOC]->(loc)
-merge (loc)-[:IN_CITY]->(city)
-merge (city)-[:IN_DPT]->(dpt)
-merge (dpt)-[:IN_REG]->(reg);
+where exists(n.street) and exists (n.district)
+with n
+match (str :STREET {name:n.street})-[:IN_DSTR]->(dstr {name:n.district})-[:IN_CITY]->(city :CITY {name:n.city})-[:IN_DPT]->(:DPT {name:n.dpt})
+create (n)-[:IN_STREET]->(str);
 
 match (n)
-where exists(n.street)
-and exists (n.district)
-merge (str :STREET {name:n.street})
-merge (city :CITY {name:n.city})
-merge (dstr :DISTRICT {name:n.district})
-merge (dpt :DPT {name:n.dpt})
-merge (reg :REG {name:n.reg})
-merge (n)-[:IN_STREET]->(str)
-merge (str)-[:IN_DSTR]->(dstr)
-merge (dstr)-[:IN_CITY]->(city)
-merge (city)-[:IN_DPT]->(dpt)
-merge (dpt)-[:IN_REG]->(reg);
-
-match (n)
-where exists(n.`loc-name`)
-and exists (n.district)
-merge (loc :LOCATION {name:n.`loc-name`})
-merge (city :CITY {name:n.city})
-merge (dstr :DISTRICT {name:n.district})
-merge (dpt :DPT {name:n.dpt})
-merge (reg :REG {name:n.reg})
-merge (n)-[:IN_LOC]->(loc)
-merge (loc)-[:IN_DSTR]->(dstr)
-merge (dstr)-[:IN_CITY]->(city)
-merge (city)-[:IN_DPT]->(dpt)
-merge (dpt)-[:IN_REG]->(reg);
+where exists(n.`loc-name`) and exists (n.district)
+with n
+match (loc :LOC {name:n.`loc-name`})-[:IN_DSTR]->(dstr {name:n.district})-[:IN_CITY]->(city :CITY {name:n.city})-[:IN_DPT]->(:DPT {name:n.dpt})
+create (n)-[:IN_LOC]->(loc);
 
 //---------------------------------------------------
 // Renommer les pistes cyclables 
@@ -140,13 +158,32 @@ DELETE r;
 // ----------------------------------------------------------
 // Compression - Fusion des noeuds appartenant à la même zone
 // ----------------------------------------------------------
+
+
+// test : prendre le 1er noeud de chaque relation et faire le tour (revenir au point de départ) pour avoir les noeuds dans l'ordre puis calculer la taille du polygone
+match (n)-[r :NEXT_NODE]->(m)
+with r.osmId as id, collect(n)[0] as n1, r as tgs
+match p=(n1)-[:NEXT_NODE *1.. {osmId:id}]->(n1)
+with id, nodes(p) as nds, tgs 		// supprimer le dernier noeud pour ne pas le compter 2 fois
+unwind nds as nd
+with id, collect (nd.lat) as lat, collect(nd.lon) as lon, tgs
+CREATE (new :MERGED)
+set new=tgs, new.lat=lat, new.lon=lon
+return new;
+
+
+
+
+
+
 // Ajouter les propriétés des noeuds quand on merge (lat lon ville etc) et la surface
 match (n)-[r :NEXT_NODE]->(m)
 with r.osmId as id, collect(n) as ns, collect(m) as ms, collect(r) as rs
 unwind ns + ms as nms
-with id, collect(distinct nms) as nds, collect(properties(nms)) as mdr, rs[0] as tgs
+with id, collect(distinct nms) as nds, rs[0] as tgs
+with id, nds, collect(unwind nds.lat) as lat, collect(nds.lon) as lon, tgs
 CREATE (new :MERGED)
-set new=tgs, new.lat=nds[0].lat, new.lon=nds[0].lon
+set new=tgs, new=prop, new.lat=lat, new.lon=lon
 
 // relations ->
 with id,tgs, new, nds
@@ -232,6 +269,8 @@ MATCH (n {shop:'farm'})
 SET n:PRODUITS_FERMIERS:ECONOMIE;
 MATCH (n {organic:'only'})
 SET n:BIO:ECONOMIE;
+MATCH (n {shop:'supermarket'})
+SET n:SUPERMARCHE:ECONOMIE;
 MATCH (n) WHERE n.fair_trade='only' OR n.fair_trade='yes'
 SET n:EQUITABLE:ECONOMIE;
 MATCH (n) WHERE n.amenity='restaurant' OR n.amenity='fast_food'
