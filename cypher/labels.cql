@@ -1,29 +1,28 @@
 //--------------------------------------------------
-// Villes et régions
+// Villes et régions 
 //--------------------------------------------------
-
-// Départements -> régions
+// Départements -> régions 
 match (n)
 where exists (n.reg)
 with distinct n.dpt as ndpt, n.reg as nreg
 merge (reg :REG {name:nreg})
 create (dpt :DPT {name:ndpt})-[:IN_REG]->(reg);
 
-// Villes -> departements
+// Villes -> departements 
 match (n)
 where exists (n.reg)
 with distinct n.city as ncity, n.dpt as ndpt
 match (dpt :DPT {name:ndpt})
 create (city :CITY {name:ncity})-[:IN_DPT]->(dpt);
 
-// Districts -> villes
+// Districts -> villes 
 match (n)
 where exists (n.district)
 with distinct n.district as ndistrict, n.city as ncity, n.dpt as ndpt
 match (city :CITY {name:ncity})-[:IN_DPT]->(:DPT {name:ndpt})
 create (dstr :DISTRICT {name:ndistrict})-[:IN_CITY]->(city);
 
-// Rues et lieux -> villes
+// Rues et lieux -> villes 
 match (n)
 where exists(n.street) and not exists (n.district)
 with distinct n.street as nstreet, n.city as ncity, n.dpt as ndpt
@@ -36,7 +35,7 @@ with distinct n.`loc-name` as nloc, n.city as ncity, n.dpt as ndpt
 match (city :CITY {name:ncity})-[:IN_DPT]->(:DPT {name:ndpt})
 create (loc :LOCATION {name:nloc})-[:IN_CITY]->(city);
 
-// Rues et lieux -> districts
+// Rues et lieux -> districts 
 match (n)
 where exists(n.street) and exists (n.district)
 with distinct n.street as nstreet, n.district as ndistrict, n.city as ncity
@@ -49,7 +48,7 @@ with distinct n.`loc-name` as nloc, n.district as ndistrict, n.city as ncity
 match (dstr :DISTRICT {name:ndistrict})-[:IN_CITY]->(:CITY {name:ncity})
 create (loc :LOCATION {name:nloc})-[:IN_DSTR]->(dstr);
 
-// Noeuds -> rues ou locations
+// Noeuds -> rues ou locations 
 match (n)
 where exists(n.street) and not exists (n.district)
 with n
@@ -156,36 +155,40 @@ DELETE r;
 
 
 // ----------------------------------------------------------
-// Compression - Fusion des noeuds appartenant à la même zone
+// Compression - Fusion des noeuds appartenant à la même zone 
 // ----------------------------------------------------------
-
-
-// test : prendre le 1er noeud de chaque relation et faire le tour (revenir au point de départ) pour avoir les noeuds dans l'ordre puis calculer la taille du polygone
+// Calcul de surface 
 match (n)-[r :NEXT_NODE]->(m)
-with r.osmId as id, collect(n)[0] as n1, r as tgs
-match p=(n1)-[:NEXT_NODE *1.. {osmId:id}]->(n1)
-with id, nodes(p) as nds, tgs 		// supprimer le dernier noeud pour ne pas le compter 2 fois
+with r.osmId as osmId, collect(n)[0] as n1, collect(r)[0] as tgs
+match p=(n1)-[:NEXT_NODE *1.. {osmId:osmId}]->(n1)
+with osmId, nodes(p) as nds, tgs
 unwind nds as nd
-with id, collect (nd.lat) as lat, collect(nd.lon) as lon, tgs
+with osmId, collect (nd.lat) as lat, collect(nd.lon) as lon, tgs, nds
+UNWIND range(0, size(lat)-2) as i
+with osmId, tgs, lat, lon, nds, abs(sum(radians(toFloat(lon[i+1]) - toFloat(lon[i]))
+	* (2+ sin(radians(toFloat(lat[i]))) + sin(radians(toFloat(lat[i+1])))))
+	* 6378137 * 6378137 / 2) as surface
 CREATE (new :MERGED)
-set new=tgs, new.lat=lat, new.lon=lon
+set new=tgs, new.lat=lat, new.lon=lon, new.surface=surface
 return new;
 
 
-
-
-
-
 // Ajouter les propriétés des noeuds quand on merge (lat lon ville etc) et la surface
+// match (n)-[r :NEXT_NODE]->(m)
+//with r.osmId as id, collect(n) as ns, collect(m) as ms, collect(r) as rs
+//unwind ns + ms as nms
+//with id, collect(distinct nms) as nds, rs[0] as tgs
+//with id, nds, collect(unwind nds.lat) as lat, collect(nds.lon) as lon, tgs
+//CREATE (new :MERGED)
+//set new=tgs, new=prop, new.lat=lat, new.lon=lon
+// enlever ça
+
+// relations ->
 match (n)-[r :NEXT_NODE]->(m)
 with r.osmId as id, collect(n) as ns, collect(m) as ms, collect(r) as rs
 unwind ns + ms as nms
 with id, collect(distinct nms) as nds, rs[0] as tgs
-with id, nds, collect(unwind nds.lat) as lat, collect(nds.lon) as lon, tgs
-CREATE (new :MERGED)
-set new=tgs, new=prop, new.lat=lat, new.lon=lon
 
-// relations ->
 with id,tgs, new, nds
 match (n)-[r2]->(s)
 where n in nds
