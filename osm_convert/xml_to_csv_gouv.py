@@ -101,4 +101,3 @@ print("Move the generated files to the neo4j import directory and execute the fo
 print("bin/neo4j-admin import --nodes=import/nodes.csv --relationships=import/ways.csv") 
 print("-----------------------")
 print("bin\neo4j-admin.bat import --nodes=import\nodes.csv --relationships=import\ways.csv") 
-

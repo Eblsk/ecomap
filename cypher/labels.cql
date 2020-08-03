@@ -90,6 +90,13 @@ SET r2 = r
 WITH r
 DELETE r;
 
+// Longueur des pistes cyclables
+MATCH (n)-[r:PISTE_CYCLABLE]->(m)
+WITH r,
+point({longitude: toFloat(n.lon), latitude: toFloat(n.lat)}) AS src,
+point({longitude: toFloat(m.lon), latitude: toFloat(m.lat)}) AS dst
+SET r.longueur = distance(src, dst);
+
 // -------------------------------------------------------
 // Compression - Dupliquer les noeuds avec + d'une relation entre eux
 // -------------------------------------------------------
@@ -100,10 +107,10 @@ where size(rels) > 1
 with n,m, rels
 UNWIND rels as r
 MERGE (a :DUPLICATED {osmId:n.osmId, rel_dup:r.osmId})
-ON CREATE SET a=n, a.rel_dup=r.osmId
+ON CREATE SET a=n
 MERGE (b :DUPLICATED {osmId:m.osmId, rel_dup:r.osmId})
-ON CREATE SET b=m, b.rel_dup=r.osmId
-CREATE (a)-[rr :NEXT_DUPLICATED {idr:r.osmId}]->(b)
+ON CREATE SET b=m
+CREATE (a)-[rr :NEXT_DUPLICATED {osmId:r.osmId}]->(b)
 SET rr=r
 CREATE (n)-[ro:ORIGINAL]->(m)
 SET ro = r
@@ -113,31 +120,31 @@ DELETE r;
 // relations internes 
 MATCH (n :DUPLICATED)
 with n
-match (m {osmId:n.osmId})-[r :NEXT_NODE {idr:n.rel_dup}]->(s)
+match (m {osmId:n.osmId})-[r :NEXT_NODE {osmId:n.rel_dup}]->(s)
 where n<>m
 CREATE (n)-[rr :NEXT_NODE]->(s)
 SET rr=r;
 
 MATCH (n :DUPLICATED)
 with n
-match (m {osmId:n.osmId})<-[r :NEXT_NODE {idr:n.rel_dup}]-(s)
+match (m {osmId:n.osmId})<-[r :NEXT_NODE {osmId:n.rel_dup}]-(s)
 where n<>m
 CREATE (n)<-[rr :NEXT_NODE]-(s)
 SET rr=r;
 
 // relations externes
 MATCH (n)-[o :ORIGINAL]-(n2)
-with n, collect(o.idr) as orel
+with n, collect(o.osmId) as orel
 match (n)-[r]->(s)
-where not r.idr in orel
+where not r.osmId in orel
 MATCH (m :DUPLICATED {osmId:n.osmId})
 CREATE (m)-[rr :NEXT_NODE]->(s)
 SET rr=r;
 
 MATCH (n)-[o :ORIGINAL]-(n2)
-with n, collect(o.idr) as orel
+with n, collect(o.osmId) as orel
 match (n)<-[r]-(s)
-where not r.idr in orel
+where not r.osmId in orel
 MATCH (m :DUPLICATED {osmId:n.osmId})
 CREATE (m)<-[rr :NEXT_NODE]-(s)
 SET rr=r;
@@ -153,11 +160,10 @@ SET r2 = r
 WITH r
 DELETE r;
 
-
 // ----------------------------------------------------------
 // Compression - Fusion des noeuds appartenant à la même zone 
 // ----------------------------------------------------------
-// Calcul de surface 
+// Calcul de surface
 match (n)-[r :NEXT_NODE]->(m)
 with r.osmId as osmId, collect(n)[0] as n1, collect(r)[0] as tgs
 match p=(n1)-[:NEXT_NODE *1.. {osmId:osmId}]->(n1)
@@ -172,28 +178,18 @@ CREATE (new :MERGED)
 set new=tgs, new.lat=lat, new.lon=lon, new.surface=surface
 return new;
 
-
-// Ajouter les propriétés des noeuds quand on merge (lat lon ville etc) et la surface
-// match (n)-[r :NEXT_NODE]->(m)
-//with r.osmId as id, collect(n) as ns, collect(m) as ms, collect(r) as rs
-//unwind ns + ms as nms
-//with id, collect(distinct nms) as nds, rs[0] as tgs
-//with id, nds, collect(unwind nds.lat) as lat, collect(nds.lon) as lon, tgs
-//CREATE (new :MERGED)
-//set new=tgs, new=prop, new.lat=lat, new.lon=lon
-// enlever ça
-
 // relations ->
 match (n)-[r :NEXT_NODE]->(m)
 with r.osmId as id, collect(n) as ns, collect(m) as ms, collect(r) as rs
 unwind ns + ms as nms
 with id, collect(distinct nms) as nds, rs[0] as tgs
 
-with id,tgs, new, nds
+with id,tgs, nds
 match (n)-[r2]->(s)
 where n in nds
 and (not exists(r2.osmId) or tgs.osmId<>r2.osmId)
 and not s in nds
+match (new {osmId:tgs.osmId})
 create (new)-[rr:NEXT_MERGED]->(s)
 set rr=r2;
 
@@ -318,10 +314,3 @@ MATCH (n {amenity:'car_pooling'})
 SET n:POOLING:MOBILITE;
 MATCH (n {amenity:'car_sharing'})
 SET n:COVOITURAGE:MOBILITE;
-
-// Longueur des pistes cyclables
-MATCH (n)-[r:PISTE_CYCLABLE]->(m)
-WITH r,
-point({longitude: toFloat(n.lon), latitude: toFloat(n.lat)}) AS src,
-point({longitude: toFloat(m.lon), latitude: toFloat(m.lat)}) AS dst
-SET r.longueur = distance(src, dst);
