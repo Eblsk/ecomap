@@ -11,9 +11,9 @@ create (dpt :DPT {name:ndpt})-[:IN_REG]->(reg);
 // Villes -> departements 
 match (n)
 where exists (n.reg)
-with distinct n.city as ncity, n.dpt as ndpt
+with distinct n.city as ncity, n.`city-surface` as nsurface, n.`city-population`as npop, n.`city-centre`as ncentre, n.dpt as ndpt
 match (dpt :DPT {name:ndpt})
-create (city :CITY {name:ncity})-[:IN_DPT]->(dpt);
+create (city :CITY {name:ncity, citysurface:nsurface, citypop:npop, citycentre:ncentre})-[:IN_DPT]->(dpt);
 
 // Districts -> villes 
 match (n)

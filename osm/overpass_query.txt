@@ -1,0 +1,104 @@
+// Zones
+area[name="Évry-Courcouronnes"][admin_level=8]
+area[name="Soisy-sur-Seine"][admin_level=8]
+area[name="Étiolles"][admin_level=8]
+area[name="Ris-Orangis"][admin_level=8]
+area[name="Corbeil-Essonnes"][admin_level=8]
+area[name="Lisses"][admin_level=8]
+
+area[name="Paris"][admin_level=6]
+area[name="Île-de-France"][admin_level=4]
+
+
+// Requête
+
+area[name="Paris"][admin_level=6]->.a;
+(
+		(
+		// Espaces verts / biodiversité
+		nwr[leisure=park][access!=private](area.a);
+		nwr[leisure=garden][access=yes](area.a);
+		nwr[leisure=garden][access=permissive](area.a);
+		nwr[landuse=forest](area.a);
+		nwr[natural=wood](area.a);
+		nwr[boundary=national_park](area.a);
+		nwr[leisure=nature_reserve](area.a);
+		nwr[boundary=protected_area](area.a);
+		nwr[man_made=insect_hotel](area.a);
+		nwr[man_made=beehive](area.a);
+		nwr[man_made=nesting_site](area.a);
+
+		// Economie verte
+		nwr[amenity=marketplace](area.a);
+		nwr[shop=farm](area.a);
+		nwr[shop=supermarket](area.a);
+		nwr[organic=only](area.a);
+		nwr[fair_trade=only](area.a);
+		nwr[fair_trade=yes](area.a);
+		nwr[amenity=restaurant]['diet:vegetarian'=only](area.a);
+		nwr[amenity=restaurant]['diet:vegan'=only](area.a);
+		nwr[amenity=fast_food]['diet:vegetarian'=only](area.a);
+		nwr[amenity=fast_food]['diet:vegan'=only](area.a);
+		nwr[shop=second_hand](area.a);
+		nwr[second_hand=only](area.a);
+		nwr[shop=charity](area.a);
+		nwr[repair][repair!=no](area.a);
+
+		// Energie
+		nwr[amenity=waste_basket](area.a);
+		nwr[amenity=waste_disposal](area.a);
+		nwr[amenity=recycling](area.a);
+		nwr[landuse=basin](area.a);
+		nwr['generator:source'=solar](area.a);
+		nwr['plant:source'=solar](area.a);
+		nwr['generator:source'=wind](area.a);
+		nwr['plant:source'=wind](area.a);
+		nwr['plant:source'=hydro](area.a);
+		nwr['generator:source'=geothermal](area.a);
+		nwr['generator:source'=biomass](area.a);
+		nwr['plant:source'=biomass](area.a);
+
+		// Mobilité verte
+		// Vélos
+		nwr[highway=cycleway](area.a);
+		nwr[cycleway=track](area.a);
+		nwr['cycleway:right'=track](area.a);
+		nwr['cycleway:left'=track](area.a);
+		nwr['cycleway:both'=track](area.a);
+		nwr[bicycle=use_sidepath](area.a);
+		nwr[cyclestreet=yes](area.a);
+		nwr[bicycle_road=yes](area.a);
+		nwr[bicycle=designated](area.a);
+
+		nwr[cycleway=lane](area.a);
+		nwr['cycleway:right'=lane](area.a);
+		nwr['cycleway:left'=lane](area.a);
+		nwr['cycleway:both'=lane](area.a);
+		nwr[cycleway=opposite_lane](area.a);
+		nwr['cycleway:right'=opposite_lane](area.a);
+		nwr['cycleway:left'=opposite_lane](area.a);
+		nwr['cycleway:both'=opposite_lane](area.a);
+
+		nwr[shop=bicycle](area.a);
+		nwr[amenity=bicycle_rental](area.a);
+		nwr['service:bicycle:rental'=yes](area.a);
+		nwr[amenity=bicycle_repair_station](area.a);
+		nwr['service:bicycle:repair'=yes](area.a);
+		nwr[club=bicycle](area.a);
+		nwr[association=bicycle](area.a);
+		nwr[amenity=bicycle_parking][access!=private](area.a);
+
+		// Transports/autres
+		nwr[highway=bus_stop][access!=private](area.a);
+		nwr[public_transport=stop_position](area.a);
+		nwr[public_transport=platform](area.a);
+		nwr[highway=platform](area.a);
+		nwr[railway=tram_stop](area.a);
+		nwr[railway=halt](area.a);
+		nwr[amenity=charging_station][access!=private](area.a);
+		nwr[amenity=car_pooling](area.a);
+		nwr[amenity=car_sharing](area.a);
+		);
+	>>;
+); 
+out;
